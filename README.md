@@ -5,8 +5,9 @@
 To use, create a Checkpoint and initialize with tables you want to skip, or schemas you want to keep/ignore:
 
 ```Python
-from pyspawn.Checkpoint import Checkpoint
-from pyspawn.adapters.SqlServerAdapter import SqlServerAdapter
+import pyodbc
+from pyspawn import Checkpoint
+from pyspawn.adapters import SqlServerAdapter
 
 Chkpt = Checkpoint(
     tables_to_ignore = ["A"],
@@ -21,12 +22,15 @@ Chkpt = Checkpoint(
 
 In your tests, in the fixture setup, reset your checkpoint:
 ```Python
-from pyspawn.Checkpoint import Checkpoint
+import pyodbc
+from pyspawn import Checkpoint
+from pyspawn.adapters import SqlServerAdapter
 
 with pyodbc.connect(con_str) as conn:
     Chkpt = Checkpoint(
         tables_to_include = ["A","B", "C"],
         schemas_to_include = ["dbo"]
+        db_adapter=SqlServerAdapter()
     )
     Chkpt.reset(conn)
 ```
@@ -67,7 +71,7 @@ To run tests docker-compose is dependent on a few environment variables from a .
 - "SA_PASSWORD=*YourPassword*" for the SQL server SA-login
 
 When the .env-file is in place all you have to run is:
-```Powershell
+```bash
 docker-compose -f docker-compose.yaml -f docker-compose.test.yaml build
 docker-compose -f docker-compose.yaml -f docker-compose.test.yaml run --rm testsuite
 ```

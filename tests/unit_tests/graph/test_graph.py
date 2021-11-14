@@ -292,7 +292,6 @@ if __name__ == "__main__":
     test_delete_list_three_tables_three_non_cyclical_foreign_key_relationships()
     test_delete_list_three_tables_with_equivalent_relationships()
     test_delete_list_four_tables_with_two_disparate_relationships()
-    test_remove_simple_cycle()
     test_ignore_self_reference()
     test_remove_cyclical_relationship_ignore_normal_relationships()
     test_remove_cycles_withouth_removing_start()

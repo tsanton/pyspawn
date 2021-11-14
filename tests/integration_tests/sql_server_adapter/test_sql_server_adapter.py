@@ -3,10 +3,10 @@ from typing import List
 from pytest import fixture
 import pyodbc
 
-from pyspawn.Checkpoint import Checkpoint
+from pyspawn import Checkpoint
+from pyspawn.adapters import SqlServerAdapter
 from pyspawn.graph.Table import Table
 from pyspawn.graph.TemporalTable import TemporalTable
-from pyspawn.adapters.SqlServerAdapter import SqlServerAdapter
 
 
 @fixture()
