@@ -1,0 +1,15 @@
+version: "3.4"
+services:
+  mssql:
+    environment:
+        - SA_PASSWORD
+        - ACCEPT_EULA
+    build:
+      context: .
+      dockerfile: mssql.Dockerfile
+      args:
+        SA_PASSWORD: ${SA_PASSWORD}
+        ACCEPT_EULA: ${ACCEPT_EULA}
+    user: root
+    ports:
+      - "1433:1433"
