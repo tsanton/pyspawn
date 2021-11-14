@@ -1,14 +1,9 @@
-# Starter pipeline
-# Start with a minimal pipeline that you can customize to build and deploy your code.
-# Add steps that build, run tests, deploy, and more:
-# https://aka.ms/yaml
-
 trigger:
 - master
 
 variables:
   major: 1
-  minor: 0
+  minor: 1
   patch: $[counter(variables['minor'], 1)] #this will reset when we bump minor
   PYSPAWN_VERSION_NUM: $(major).$(minor).$(patch)
   SA_PASSWORD: RandomSecretPassword123!
