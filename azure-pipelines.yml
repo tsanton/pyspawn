@@ -3,7 +3,7 @@ trigger:
 
 variables:
   major: 1
-  minor: 0
+  minor: 1
   patch: $[counter(variables['minor'], 1)] #this will reset when we bump minor
   PYSPAWN_VERSION_NUM: $(major).$(minor).$(patch)
   SA_PASSWORD: RandomSecretPassword123!
