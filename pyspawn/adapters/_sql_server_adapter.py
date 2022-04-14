@@ -13,7 +13,7 @@ class SqlServerAdapter(DbAdapter):
     def __init__(self):
         super().__init__()
 
-    def get_tables_command_text(self, ckpnt: "Checkpoint") -> str:
+    def get_tables_command_text(self, checkpoint: "Checkpoint") -> str:
         """Build a query that selects out all schema- and table names for selected schemas and tables."""
         cmd_txt = """
         select 
@@ -23,26 +23,26 @@ class SqlServerAdapter(DbAdapter):
         INNER JOIN sys.schemas s ON t.schema_id = s.schema_id
         WHERE 1=1
         """
-        if len(ckpnt.tables_to_ignore) > 0:
-            tables_to_ignore = ",".join(["'" + x + "'" for x in ckpnt.tables_to_ignore])
+        if len(checkpoint.tables_to_ignore) > 0:
+            tables_to_ignore = ",".join(["'" + x + "'" for x in checkpoint.tables_to_ignore])
             cmd_txt += f"AND t.name NOT IN ({tables_to_ignore})\n"
 
-        if len(ckpnt.tables_to_include) > 0:
-            tables_to_include = ",".join(["'" + x + "'" for x in ckpnt.tables_to_include])
+        if len(checkpoint.tables_to_include) > 0:
+            tables_to_include = ",".join(["'" + x + "'" for x in checkpoint.tables_to_include])
             cmd_txt += f"AND t.name IN ({tables_to_include})\n"
         
-        if len(ckpnt.schemas_to_ignore) > 0:
-            schemas_to_ignore = ",".join(["'" + x + "'" for x in ckpnt.schemas_to_ignore])
+        if len(checkpoint.schemas_to_ignore) > 0:
+            schemas_to_ignore = ",".join(["'" + x + "'" for x in checkpoint.schemas_to_ignore])
             cmd_txt += f"AND s.name NOT IN ({schemas_to_ignore})\n"
         
-        if len(ckpnt.schemas_to_include) > 0:
-            schemas_to_include = ",".join(["'" + x + "'" for x in ckpnt.schemas_to_include])
+        if len(checkpoint.schemas_to_include) > 0:
+            schemas_to_include = ",".join(["'" + x + "'" for x in checkpoint.schemas_to_include])
             cmd_txt += f"AND s.name IN ({schemas_to_include})\n"
         return cmd_txt
 
 
 
-    def get_temporal_table_command_text(self, ckpnt: "Checkpoint") -> str:
+    def get_temporal_table_command_text(self, checkpoint: "Checkpoint") -> str:
         """Build a query that selects out all temporal table names and schemas with their adjoining historical table- and schema names for selected schemas and tables."""
         cmd_txt = """
         select 
@@ -56,14 +56,14 @@ class SqlServerAdapter(DbAdapter):
         INNER JOIN sys.schemas temp_s on temp_t.schema_id = temp_s.schema_id
         WHERE t.temporal_type = 2
         """
-        if len(ckpnt.tables_to_ignore) > 0:
-            tables_to_ignore = ",".join(["'" + x + "'" for x in ckpnt.tables_to_ignore])
+        if len(checkpoint.tables_to_ignore) > 0:
+            tables_to_ignore = ",".join(["'" + x + "'" for x in checkpoint.tables_to_ignore])
             cmd_txt += f"\nAND t.name NOT IN ({tables_to_ignore})"
         return cmd_txt
 
 
 
-    def get_relationship_command_text(self, ckpnt: "Checkpoint") -> str:
+    def get_relationship_command_text(self, checkpoint: "Checkpoint") -> str:
         """Build a query that selects out all ForeignKey (FK) to PrimaryKey (PK) relations for selected schemas and tables."""
         cmd_txt = """
         select
@@ -79,20 +79,20 @@ class SqlServerAdapter(DbAdapter):
         inner join sys.schemas fk_schema on so_fk.schema_id = fk_schema.schema_id
         where 1=1
         """
-        if len(ckpnt.tables_to_ignore) > 0:
-            tables_to_ignore = ",".join(["'" + x + "'" for x in ckpnt.tables_to_ignore])
+        if len(checkpoint.tables_to_ignore) > 0:
+            tables_to_ignore = ",".join(["'" + x + "'" for x in checkpoint.tables_to_ignore])
             cmd_txt += f"AND so_pk.name NOT IN ({tables_to_ignore})\n"
 
-        if len(ckpnt.tables_to_include) > 0:
-            tables_to_include = ",".join(["'" + x + "'" for x in ckpnt.tables_to_include])
+        if len(checkpoint.tables_to_include) > 0:
+            tables_to_include = ",".join(["'" + x + "'" for x in checkpoint.tables_to_include])
             cmd_txt += f"AND so_pk.name IN ({tables_to_include})\n"
         
-        if len(ckpnt.schemas_to_ignore) > 0:
-            schemas_to_ignore = ",".join(["'" + x + "'" for x in ckpnt.schemas_to_ignore])
+        if len(checkpoint.schemas_to_ignore) > 0:
+            schemas_to_ignore = ",".join(["'" + x + "'" for x in checkpoint.schemas_to_ignore])
             cmd_txt += f"AND pk_schema.name NOT IN ({schemas_to_ignore})\n"
         
-        if len(ckpnt.schemas_to_include) > 0:
-            schemas_to_include = ",".join(["'" + x + "'" for x in ckpnt.schemas_to_include])
+        if len(checkpoint.schemas_to_include) > 0:
+            schemas_to_include = ",".join(["'" + x + "'" for x in checkpoint.schemas_to_include])
             cmd_txt += f"AND pk_schema.name IN ({schemas_to_include})\n"
         return cmd_txt
 

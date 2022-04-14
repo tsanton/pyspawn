@@ -17,17 +17,17 @@ class DbAdapter(abc.ABC):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def get_tables_command_text(self, ckpnt: "Checkpoint") -> str:
+    def get_tables_command_text(self, checkpoint: "Checkpoint") -> str:
         """Build a query that selects out all schema- and table names for selected schemas and tables."""
         pass
 
     @abc.abstractmethod
-    def get_temporal_table_command_text(self, ckpnt: "Checkpoint") -> str:
+    def get_temporal_table_command_text(self, checkpoint: "Checkpoint") -> str:
         """Build a query that selects out all temporal table names and schemas with their adjoining historical table- and schema names for selected schemas and tables."""
         pass
 
     @abc.abstractmethod
-    def get_relationship_command_text(self, ckpnt: "Checkpoint") -> str:
+    def get_relationship_command_text(self, checkpoint: "Checkpoint") -> str:
         """Build a query that selects out all ForeignKey (FK) to PrimaryKey (PK) relations for selected schemas and tables."""
         pass
 
