@@ -1,8 +1,6 @@
-from __future__ import annotations
-
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
-    from pyspawn.graph.Relationship import Relationship
+    from pyspawn._graph.relationship import Relationship
 
 from dataclasses import dataclass
 from typing import Set

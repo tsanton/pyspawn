@@ -7,30 +7,31 @@ To use, create a Checkpoint and initialize with tables you want to skip, or sche
 ```Python
 import pyodbc
 from pyspawn import Checkpoint
-from pyspawn.adapters import SqlServerAdapter
+from pyspawn import SqlServerAdapter
 
 Chkpt = Checkpoint(
-    tables_to_ignore = ["A"],
-    tables_to_include = ["B", "C"],
-    schemas_to_ignore = ["schema1"],
-    schemas_to_include = ["schema2", "schema3"],
-    check_temporal_table = False,
-    reseed_identity = True,
+    tables_to_ignore=["A"],
+    tables_to_include=["B", "C"],
+    schemas_to_ignore=["schema1"],
+    schemas_to_include=["schema2", "schema3"],
+    check_temporal_table=False,
+    reseed_identity=True,
     db_adapter=SqlServerAdapter()
 )
 ```
 
 In your tests, in the fixture setup, reset your checkpoint:
+
 ```Python
 import pyodbc
 from pyspawn import Checkpoint
-from pyspawn.adapters import SqlServerAdapter
+from pyspawn import SqlServerAdapter
 
 with pyodbc.connect(con_str) as conn:
     Chkpt = Checkpoint(
-        tables_to_include = ["A","B", "C"],
-        schemas_to_include = ["dbo"]
-        db_adapter=SqlServerAdapter()
+        tables_to_include=["A", "B", "C"],
+        schemas_to_include=["dbo"]
+    db_adapter = SqlServerAdapter()
     )
     Chkpt.reset(conn)
 ```
@@ -72,8 +73,8 @@ To run tests docker-compose is dependent on a few environment variables from a .
 
 When the .env-file is in place all you have to run is:
 ```bash
-docker-compose -f docker-compose.yaml -f docker-compose.test.yaml build
-docker-compose -f docker-compose.yaml -f docker-compose.test.yaml run --rm testsuite
+docker-compose -f docker-compose.yaml -f docker-compose.testing.yaml build
+docker-compose -f docker-compose.yaml -f docker-compose.testing.yaml run --rm testsuite
 ```
 
 ## **Honors** ##

@@ -1,0 +1,4 @@
+version: "3.9"
+services:
+  pyspawn:
+    command: py.test -v -s #-k demo-case

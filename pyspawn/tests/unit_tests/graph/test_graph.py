@@ -1,50 +1,49 @@
-from pyspawn.graph.GraphBuilder import GraphBuilder
-from pyspawn.graph.Table import Table
-from pyspawn.graph.Relationship import Relationship
-
+from pyspawn._graph.graph_builder import GraphBuilder
+from pyspawn._graph.table import Table
+from pyspawn._graph.relationship import Relationship
 
 ### NB! Environment variable "PYTHONHASHSEED" has to be set to "0" to avoid runtime randomization of hash seed. Randomization will mess up return order and fail tests ###
 
 def test_delete_list_with_one_table():
     ### Arrange ###
-    A = Table("dbo", "A")
-    Tables = [A]
+    a = Table("dbo", "A")
+    tables = [a]
 
     ### Act ###
-    Builder = GraphBuilder(set(Tables), set())
+    builder = GraphBuilder(set(tables), set())
 
     ### Assert ###
-    assert Builder.to_delete == Tables, "Results not as expected"
+    assert builder.to_delete == tables, "Results not as expected"
 
 
 
 def test_delete_list_with_two_unrelated_tables():
     ### Arrange ###
-    A = Table("dbo", "A")
-    B = Table("dbo", "B")
-    Tables = [A, B]
+    a = Table("dbo", "A")
+    b = Table("dbo", "B")
+    tables = [a, b]
 
     ### Act ###
-    Builder = GraphBuilder(set(Tables), set())
+    builder = GraphBuilder(set(tables), set())
 
     ### Assert ###
-    assert Builder.to_delete == [B, A], "Results not as expected"
+    assert builder.to_delete == [b, a], "Results not as expected"
 
 
 
 def test_delete_list_two_tables_one_foreign_key_relationship():
     ### Arrange ###
-    A = Table("dbo", "A")
-    B = Table("dbo", "B")
-    Tables = [A, B]
-    A_to_B = Relationship(A, B, "A.B")
-    Relationships = [A_to_B]
+    a = Table("dbo", "A")
+    b = Table("dbo", "B")
+    tables = [a, b]
+    a_to_b = Relationship(a, b, "A.B")
+    relationships = [a_to_b]
 
     ### Act ###
-    Builder = GraphBuilder(set(Tables), set(Relationships))
+    builder = GraphBuilder(set(tables), set(relationships))
 
     ### Assert ###
-    assert Builder.to_delete == [A, B], "Results not as expected"
+    assert builder.to_delete == [a, b], "Results not as expected"
 
 
 

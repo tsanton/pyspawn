@@ -1,10 +1,5 @@
-ARG VARIANT="3.9"
-FROM mcr.microsoft.com/vscode/devcontainers/python:0-${VARIANT}
-
-# [Choice] Node.js version: none, lts/*, 16, 14, 12, 10
-ARG NODE_VERSION="none"
-RUN if [ "${NODE_VERSION}" != "none" ]; then su vscode -c "umask 0002 && . /usr/local/share/nvm/nvm.sh && nvm install ${NODE_VERSION} 2>&1"; fi
-
+ARG PYTHON_IMAGE_NAME=3.6.15-buster
+FROM python:${PYTHON_IMAGE_NAME}
 
 RUN apt-get update -qq && apt-get install -y \
         curl  \
@@ -20,7 +15,13 @@ RUN apt-get update -qq && apt-get install -y \
         msodbcsql17 \
         mssql-tools \
         && apt-get clean -y
- 
-COPY setup.py pyproject.toml requirements.txt ./
+
+WORKDIR /app
+
+COPY setup.py requirements.txt README.md ./
 
 RUN pip install -r requirements.txt
+
+RUN pip install -e ./
+
+COPY ./ ./

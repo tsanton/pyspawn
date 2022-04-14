@@ -1,13 +1,14 @@
 from queue import LifoQueue
-from typing import List, Set, Tuple
-from pyspawn.graph.Relationship import Relationship
-from pyspawn.graph.Table import Table
+from typing import Set, Tuple
+from pyspawn._graph.relationship import Relationship
+from pyspawn._graph.table import Table
 
 
 class GraphBuilder:
     """GraphBuilder puts together a orderes list of tables to delete in such a fashion that foreign key constraints are not violated."""
-    ### If any combination of tables have cyclical relationships (i.e. A -> FK -> B, B -> FK -> C and C -> FK -> A) that is handled through 'ALTER TABLE {} NOCHECK CONSTRAINT ALL'
-    ### and 'ALTER TABLE {} WITH CHECK CHECK CONSTRAINT ALL' statements for the last constraint the _has_cycle() recursion finds that completes the cicle.
+    ### If any combination of tables have cyclical relationships (i.e. A -> FK -> B, B -> FK -> C and C -> FK -> A)
+    ### that is handled through 'ALTER TABLE {} NOCHECK CONSTRAINT ALL' and 'ALTER TABLE {} WITH CHECK CONSTRAINT ALL'
+    ### statements for the last constraint the _has_cycle() recursion finds that completes the circle.
     ### For instance, A -> FK -> B, B -> FK -> C and C -> FK -> A: if C -> FK -> A is the last constraint in the _has_cycle() recursion the C would be NOCHECK CONSTRAINT ALL followed by Delete A, Delete B & Delete C
     ### For instance, A -> FK -> B, B -> FK -> C and C -> FK -> A: if B -> FK -> C is the last constraint in the _has_cycle() recursion the B would be NOCHECK CONSTRAINT ALL followed by Delete C, Delete A & Delete B
 
@@ -32,7 +33,7 @@ class GraphBuilder:
 
 
 
-    def _find_and_remove_cycles(self, tables: set[Table]) -> tuple[set(), LifoQueue[Table]]:
+    def _find_and_remove_cycles(self, tables:Set[Table]): #-> Tuple[Set[Relationship], LifoQueue[Table]]:
         """Loops through all tables and, in comination with _has_cycle(), creates a Last In First Out (LIFO) queue of tables to be deleted. Cyclical relations are kept separate for special handling."""
         not_visited: Set[Table] = tables.copy()
         visiting: Set[Table] = set()
@@ -43,11 +44,11 @@ class GraphBuilder:
         for t in tables:
             self._has_cycle(t, not_visited, visiting, visited, cyclic_relationships, to_delete)
 
-        return (cyclic_relationships, to_delete)
+        return cyclic_relationships, to_delete
 
 
 
-    def _has_cycle(self, table: Table, not_visited: Set[Table], visiting: Set[Table], visited: Set[Table], cyclic_relationships: Set[Relationship], to_delete: LifoQueue[Table]) -> bool:
+    def _has_cycle(self, table:Table, not_visited:Set[Table], visiting:Set[Table], visited:Set[Table], cyclic_relationships:Set[Relationship], to_delete) -> bool: #:LifoQueue[Table]
         """Looks through a tables relationships and checks if it's a cyclical constraint (i.e. A with FK -> B, B with FK -> C and C with FK -> A).\n
            If the table has no relationships it's immediately pushed to the LIFO-queue deleting. If it has dependencies the dependencies are recursively looped until the end of the chain is found or it's established as a cyclical constraint."""
         if table in visited:

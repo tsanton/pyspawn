@@ -1,4 +1,4 @@
-from pyspawn.graph.Table import Table
+from pyspawn._graph.table import Table
 
 
 class Relationship:

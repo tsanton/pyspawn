@@ -1,28 +1,19 @@
-from __future__ import annotations
-
+from typing import List
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
-    from pyspawn.ICheckpoint import ICheckpoint
-    from pyspawn.graph import Graph
-    from pyspawn.graph.GraphBuilder import GraphBuilder
-    from pyspawn.graph.TemporalTable import TemporalTable
-    from pyspawn.graph.Table import Table
-    
-from pyspawn.adapters.IDbAdapter import IDbAdapter
+    from pyspawn._graph.graph_builder import GraphBuilder
+    from pyspawn._graph.temporal_table import TemporalTable
+    from pyspawn._graph.table import Table
+    from pyspawn import Checkpoint
+from pyspawn.adapters._db_adapter import DbAdapter
 
-
-from typing import List
-
-
-class SqlServerAdapter(IDbAdapter):
+class SqlServerAdapter(DbAdapter):
     _quote_char = '"'
 
     def __init__(self):
         super().__init__()
 
-
-
-    def get_tables_command_text(self, ckpnt: ICheckpoint) -> str:
+    def get_tables_command_text(self, ckpnt: "Checkpoint") -> str:
         """Build a query that selects out all schema- and table names for selected schemas and tables."""
         cmd_txt = """
         select 
@@ -51,7 +42,7 @@ class SqlServerAdapter(IDbAdapter):
 
 
 
-    def get_temporal_table_command_text(self, ckpnt: ICheckpoint) -> str:
+    def get_temporal_table_command_text(self, ckpnt: "Checkpoint") -> str:
         """Build a query that selects out all temporal table names and schemas with their adjoining historical table- and schema names for selected schemas and tables."""
         cmd_txt = """
         select 
@@ -72,7 +63,7 @@ class SqlServerAdapter(IDbAdapter):
 
 
 
-    def get_relationship_command_text(self, ckpnt: ICheckpoint) -> str:
+    def get_relationship_command_text(self, ckpnt: "Checkpoint") -> str:
         """Build a query that selects out all ForeignKey (FK) to PrimaryKey (PK) relations for selected schemas and tables."""
         cmd_txt = """
         select
@@ -107,7 +98,7 @@ class SqlServerAdapter(IDbAdapter):
 
 
 
-    def get_delete_command_text(self, graph: GraphBuilder) -> str:
+    def get_delete_command_text(self, graph: "GraphBuilder") -> str:
         """Build a query that drops cyclical constraints (if any) and deletes tables in an order that does not violate foreign key constraints."""
         cmd_txt = ""
 
@@ -124,7 +115,7 @@ class SqlServerAdapter(IDbAdapter):
 
 
 
-    def get_reseed_command_text(self, tables_to_reset: List[Table]) -> str:
+    def get_reseed_command_text(self, tables_to_reset: List["Table"]) -> str:
         """Build a query that reseeds identity columns for tables that are to be reset."""
         tables_to_reset = "', '".join([x.to_string() for x in tables_to_reset])
         cmd_txt = f"""
@@ -168,7 +159,7 @@ class SqlServerAdapter(IDbAdapter):
 
 
 
-    def build_turn_off_system_versoning_command_text(self, temporal_tables: List[TemporalTable]) -> str:
+    def build_turn_off_system_versioning_command_text(self, temporal_tables: List["TemporalTable"]) -> str:
         """Build a query that turns off system versioning for system versioned temporal tables."""
         cmd_txt = ""
         for t in temporal_tables:
@@ -177,7 +168,7 @@ class SqlServerAdapter(IDbAdapter):
     
 
 
-    def build_turn_on_system_versoning_command_text(self, temporal_tables: List[TemporalTable]) -> str:
+    def build_turn_on_system_versioning_command_text(self, temporal_tables: List["TemporalTable"]) -> str:
         """Build a query that turns on system versioning for system versioned temporal tables."""
         cmd_txt = ""
         for t in temporal_tables:

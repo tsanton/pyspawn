@@ -1,25 +1,26 @@
-from __future__ import annotations
-
-from typing import TYPE_CHECKING
-if TYPE_CHECKING:
-    from pyspawn.adapters.IDbAdapter import IDbAdapter
-    
-    
-from pyspawn.ICheckpoint import ICheckpoint
-from pyspawn.graph.Relationship import Relationship
-from pyspawn.graph.TemporalTable import TemporalTable
-from pyspawn.graph.Table import Table
-from pyspawn.graph.GraphBuilder import GraphBuilder
-
 from typing import List
+from typing import TYPE_CHECKING
+
 import pyodbc
 
+if TYPE_CHECKING:
+    from pyspawn.adapters._db_adapter import DbAdapter
+from pyspawn._graph.relationship import Relationship
+from pyspawn._graph.temporal_table import TemporalTable
+from pyspawn._graph.table import Table
+from pyspawn._graph.graph_builder import GraphBuilder
 
 
-class Checkpoint(ICheckpoint):
+
+
+
+
+
+
+class Checkpoint:
     """Initialize Checkpoint to run reset() between all your integration tests to ensure a clean test DB."""
 
-    def __init__(self, tables_to_ignore: List[str] = [], tables_to_include: List[str] = [], schemas_to_ignore: List[str] = [], schemas_to_include: List[str] = [], check_temporal_table: bool = False, reseed_identity: bool = False, db_adapter: IDbAdapter = None, command_timeout: int = 120):
+    def __init__(self, tables_to_ignore: List[str] = [], tables_to_include: List[str] = [], schemas_to_ignore: List[str] = [], schemas_to_include: List[str] = [], check_temporal_table: bool = False, reseed_identity: bool = False, db_adapter:"DbAdapter" = None, command_timeout: int = 120):
         self.tables_to_ignore                         = tables_to_ignore
         self.tables_to_include                        = tables_to_include
         self.schemas_to_ignore                        = schemas_to_ignore
@@ -43,14 +44,14 @@ class Checkpoint(ICheckpoint):
             self._build_delete_tables(conn)
         
         if len(self._temporal_tables) > 0:
-            turn_off_versioning_cmd_txt = self.db_adapter.build_turn_off_system_versoning_command_text(self._temporal_tables)
+            turn_off_versioning_cmd_txt = self.db_adapter.build_turn_off_system_versioning_command_text(self._temporal_tables)
             with conn.cursor() as cursor:
                 cursor.execute(turn_off_versioning_cmd_txt)
 
         self._execute_delete_sql(conn)
 
         if len(self._temporal_tables) > 0:
-            turn_on_versioning_cmd_txt = self.db_adapter.build_turn_on_system_versoning_command_text(self._temporal_tables)
+            turn_on_versioning_cmd_txt = self.db_adapter.build_turn_on_system_versioning_command_text(self._temporal_tables)
             with conn.cursor() as cursor:
                 cursor.execute(turn_on_versioning_cmd_txt)
 
