@@ -283,211 +283,239 @@ def test_mssql_reseed_id(sql_server_conn):
 
 
 
-def test_reseed_id_two_tables(sql_server_conn):
+def test_mssql_reseed_id_two_tables(sql_server_conn):
     ### Arrange ###
-    _execute_query(sql_server_conn, f"CREATE TABLE dbo.A (Id INT IDENTITY(1,1), Val INT)")
-    _execute_query(sql_server_conn, f"CREATE TABLE dbo.B (Id INT IDENTITY(1,1), Val INT)")
-    _insert_bulk(sql_server_conn, f"INSERT INTO dbo.A (Val) values(?)", [[i] for i in range(0, 100)])
-    _insert_bulk(sql_server_conn, f"INSERT INTO dbo.B (Val) values(?)", [[i] for i in range(0, 100)])
-    inserted_a = _execute_scalar(sql_server_conn,  f"SELECT COUNT(1) FROM dbo.A")
-    inserted_b = _execute_scalar(sql_server_conn,  f"SELECT COUNT(1) FROM dbo.B")
+    a = Table("dbo", "A")
+    b = Table("dbo", "B")
+    _execute_query(sql_server_conn, f"CREATE TABLE {a.to_string()} (Id INT IDENTITY(1,1), Val INT)")
+    _execute_query(sql_server_conn, f"CREATE TABLE {b.to_string()} (Id INT IDENTITY(1,1), Val INT)")
+    _insert_bulk(sql_server_conn, f"INSERT INTO {a.to_string()} (Val) values(?)", [[i] for i in range(0, 100)])
+    _insert_bulk(sql_server_conn, f"INSERT INTO {b.to_string()} (Val) values(?)", [[i] for i in range(0, 100)])
+    inserted_a = _execute_scalar(sql_server_conn,  f"SELECT COUNT(1) FROM {a.to_string()}")
+    inserted_b = _execute_scalar(sql_server_conn,  f"SELECT COUNT(1) FROM {b.to_string()}")
 
     ### Act ###
-    Chk = Checkpoint(db_adapter=SqlServerAdapter(), reseed_identity=True)
-    Chk.reset(sql_server_conn)
-    _execute_query(sql_server_conn, f"INSERT INTO dbo.A (Val) values(1234)")
-    _execute_query(sql_server_conn, f"INSERT INTO dbo.B (Val) values(4321)")
+    checkpoint = Checkpoint(db_adapter=SqlServerAdapter(), reseed_identity=True)
+    checkpoint.reset(sql_server_conn)
+    _execute_query(sql_server_conn, f"INSERT INTO {a.to_string()} (Val) values(1234)")
+    _execute_query(sql_server_conn, f"INSERT INTO {b.to_string()} (Val) values(4321)")
 
     ### Assert ###
     assert inserted_a == 100, "100 records were not inserted to DB"
     assert inserted_b == 100, "100 records were not inserted to DB"
-    assert _execute_scalar(sql_server_conn, f"Select MAX(Id) from dbo.A") == 1, "Identity did not reset"
-    assert _execute_scalar(sql_server_conn, f"Select MAX(Id) from dbo.B") == 1, "Identity did not reset"
+    assert _execute_scalar(sql_server_conn, f"Select MAX(Id) from {a.to_string()}") == 1, "Identity did not reset"
+    assert _execute_scalar(sql_server_conn, f"Select MAX(Id) from {b.to_string()}") == 1, "Identity did not reset"
 
 
-
-def test_reseed_id_table_with_schema(sql_server_conn):
+def test_mssql_reseed_id_table_with_schema(sql_server_conn):
     ### Arrange ###
+    a = Table("dbo", "A")
+    b = Table("base", "B")
     _create_schema(sql_server_conn, "base")
-    _execute_query(sql_server_conn, f"CREATE TABLE dbo.A (Id INT IDENTITY(1,1), Val INT)")
-    _execute_query(sql_server_conn, f"CREATE TABLE base.B (Id INT IDENTITY(1,1), Val INT)")
-    _insert_bulk(sql_server_conn, f"INSERT INTO dbo.A (Val) values(?)", [[i] for i in range(0, 100)])
-    _insert_bulk(sql_server_conn, f"INSERT INTO base.B (Val) values(?)", [[i] for i in range(0, 100)])
-    inserted_a = _execute_scalar(sql_server_conn,  f"SELECT COUNT(1) FROM dbo.A")
-    inserted_b = _execute_scalar(sql_server_conn,  f"SELECT COUNT(1) FROM base.B")
+    _execute_query(sql_server_conn, f"CREATE TABLE {a.to_string()} (Id INT IDENTITY(1,1), Val INT)")
+    _execute_query(sql_server_conn, f"CREATE TABLE {b.to_string()} (Id INT IDENTITY(1,1), Val INT)")
+    _insert_bulk(sql_server_conn, f"INSERT INTO {a.to_string()} (Val) values(?)", [[i] for i in range(0, 100)])
+    _insert_bulk(sql_server_conn, f"INSERT INTO {b.to_string()} (Val) values(?)", [[i] for i in range(0, 100)])
+    inserted_a = _execute_scalar(sql_server_conn, f"SELECT COUNT(1) FROM {a.to_string()}")
+    inserted_b = _execute_scalar(sql_server_conn, f"SELECT COUNT(1) FROM {b.to_string()}")
 
     ### Act ###
-    Chk = Checkpoint(db_adapter=SqlServerAdapter(), reseed_identity=True, schemas_to_include=["dbo"])
-    Chk.reset(sql_server_conn)
-    _execute_query(sql_server_conn, f"INSERT INTO dbo.A (Val) values(1234)")
-    _execute_query(sql_server_conn, f"INSERT INTO base.B (Val) values(4321)")
+    checkpoint = Checkpoint(db_adapter=SqlServerAdapter(), reseed_identity=True, schemas_to_include=["dbo"])
+    checkpoint.reset(sql_server_conn)
+    _execute_query(sql_server_conn, f"INSERT INTO {a.to_string()} (Val) values(1234)")
+    _execute_query(sql_server_conn, f"INSERT INTO {b.to_string()} (Val) values(4321)")
 
     ### Assert ###
     assert inserted_a == 100, "100 records were not inserted to DB"
     assert inserted_b == 100, "100 records were not inserted to DB"
-    assert _execute_scalar(sql_server_conn, f"Select MAX(Id) from dbo.A") == 1, "Identity did not reset"
-    assert _execute_scalar(sql_server_conn, f"Select MAX(Id) from base.B") == 101, "Identity was reseeded"
+    assert _execute_scalar(sql_server_conn, f"Select MAX(Id) from {a.to_string()}") == 1, "Identity did not reset"
+    assert _execute_scalar(sql_server_conn, f"Select MAX(Id) from {b.to_string()}") == 101, "Identity was reseeded"
 
 
-
-def test_reseed_id_table_with_table(sql_server_conn):
+def test_mssql_reseed_id_table_with_table(sql_server_conn):
     ### Arrange ###
-    _execute_query(sql_server_conn, f"CREATE TABLE dbo.A (Id INT IDENTITY(1,1), Val INT)")
-    _execute_query(sql_server_conn, f"CREATE TABLE dbo.B (Id INT IDENTITY(1,1), Val INT)")
-    _insert_bulk(sql_server_conn, f"INSERT INTO dbo.A (Val) values(?)", [[i] for i in range(0, 100)])
-    _insert_bulk(sql_server_conn, f"INSERT INTO dbo.B (Val) values(?)", [[i] for i in range(0, 100)])
-    inserted_a = _execute_scalar(sql_server_conn,  f"SELECT COUNT(1) FROM dbo.A")
-    inserted_b = _execute_scalar(sql_server_conn,  f"SELECT COUNT(1) FROM dbo.B")
+    a = Table("dbo", "A")
+    b = Table("dbo", "B")
+    _execute_query(sql_server_conn, f"CREATE TABLE {a.to_string()} (Id INT IDENTITY(1,1), Val INT)")
+    _execute_query(sql_server_conn, f"CREATE TABLE {b.to_string()} (Id INT IDENTITY(1,1), Val INT)")
+    _insert_bulk(sql_server_conn, f"INSERT INTO {a.to_string()} (Val) values(?)", [[i] for i in range(0, 100)])
+    _insert_bulk(sql_server_conn, f"INSERT INTO {b.to_string()} (Val) values(?)", [[i] for i in range(0, 100)])
+    inserted_a = _execute_scalar(sql_server_conn, f"SELECT COUNT(1) FROM {a.to_string()}")
+    inserted_b = _execute_scalar(sql_server_conn, f"SELECT COUNT(1) FROM {b.to_string()}")
 
     ### Act ###
-    Chk = Checkpoint(db_adapter=SqlServerAdapter(), reseed_identity=True, tables_to_include=["A"])
-    Chk.reset(sql_server_conn)
-    _execute_query(sql_server_conn, f"INSERT INTO dbo.A (Val) values(1234)")
-    _execute_query(sql_server_conn, f"INSERT INTO dbo.B (Val) values(4321)")
+    checkpoint = Checkpoint(db_adapter=SqlServerAdapter(), reseed_identity=True, tables_to_include=["A"])
+    checkpoint.reset(sql_server_conn)
+    _execute_query(sql_server_conn, f"insert into {a.to_string()} (val) values(1234)")
+    _execute_query(sql_server_conn, f"insert into {b.to_string()} (val) values(4321)")
 
     ### Assert ###
     assert inserted_a == 100, "100 records were not inserted to DB"
     assert inserted_b == 100, "100 records were not inserted to DB"
-    assert _execute_scalar(sql_server_conn, f"Select MAX(Id) from dbo.A") == 1, "Identity did not reset"
-    assert _execute_scalar(sql_server_conn, f"Select MAX(Id) from dbo.B") == 101, "Identity was reseeded"
+    assert _execute_scalar(sql_server_conn, f"select max(id) from {a.to_string()}") == 1, "Identity did not reset"
+    assert _execute_scalar(sql_server_conn, f"select max(id) from {b.to_string()}") == 101, "Identity was reseeded"
 
 
 
-def test_reseed_table_never_inserted_data(sql_server_conn):
+def test_mssql_reseed_table_never_inserted_data(sql_server_conn):
     ### Arrange ###
-    _execute_query(sql_server_conn, f"CREATE TABLE dbo.A (Id INT IDENTITY(1,1), Val INT)")
+    a = Table("dbo", "A")
+    _execute_query(sql_server_conn, f"CREATE TABLE {a.to_string()} (Id INT IDENTITY(1,1), Val INT)")
 
     ### Act ###
-    Chk = Checkpoint(db_adapter=SqlServerAdapter(), reseed_identity=True)
-    Chk.reset(sql_server_conn)
-    _execute_query(sql_server_conn, f"INSERT INTO dbo.A (Val) values(0)")
+    checkpoint = Checkpoint(db_adapter=SqlServerAdapter(), reseed_identity=True)
+    checkpoint.reset(sql_server_conn)
+    _execute_query(sql_server_conn, f"INSERT INTO {a.to_string()} (Val) values(0)")
 
     ### Assert ###
-    assert _execute_scalar(sql_server_conn, f"Select MAX(Id) from dbo.A") == 1, "Wrong reseed of Identity in empty table"
+    assert _execute_scalar(sql_server_conn, f"Select MAX(Id) from {a.to_string()}") == 1, "Wrong reseed of Identity in empty table"
 
 
 
-def test_reseed_according_to_identity_initial_seed_value(sql_server_conn):
+def test_mssql_reseed_identity_non_default_start_value(sql_server_conn):
     ### Arrange ###
-    _execute_query(sql_server_conn, f"CREATE TABLE dbo.A (Id INT IDENTITY(1001,1), Val INT)")
-    _insert_bulk(sql_server_conn, f"INSERT INTO dbo.A (Val) values(?)", [[i] for i in range(0, 100)])
-    max_id = _execute_scalar(sql_server_conn,  f"SELECT MAX(id) FROM dbo.A")
+    a = Table("dbo", "A")
+    identity_start_value: int = 12
+    _execute_query(sql_server_conn, f"CREATE TABLE {a.to_string()} (Id INT IDENTITY({identity_start_value},1), Val INT)")
+    _insert_bulk(sql_server_conn, f"INSERT INTO {a.to_string()} (Val) values(?)", [[i] for i in range(0, 100)])
+    inserted_a = _execute_scalar(sql_server_conn,  f"SELECT COUNT(1) FROM {a.to_string()}")
 
     ### Act ###
-    Chk = Checkpoint(db_adapter=SqlServerAdapter(), reseed_identity=True)
-    Chk.reset(sql_server_conn)
-    _execute_query(sql_server_conn, f"INSERT INTO dbo.A (Val) values(4321)")
+    checkpoint = Checkpoint(db_adapter=SqlServerAdapter(), reseed_identity=True)
+    checkpoint.reset(sql_server_conn)
+    _execute_query(sql_server_conn, f"INSERT INTO {a.to_string()} (Val) values(1234)")
 
     ### Assert ###
-    assert max_id == 1100, "Max ID is not as expected"
-    assert _execute_scalar(sql_server_conn,  f"SELECT MAX(id) FROM dbo.A") == 1001, "Wrong reseed of Identity compaired to initial seed value"
+    assert inserted_a == 100, "100 records were not inserted to DB"
+    assert _execute_scalar(sql_server_conn,  f"SELECT MAX(id) FROM {a.to_string()}") == identity_start_value, "Wrong reseed of Identity compared to initial seed value"
 
 
+# def test_mssql_reseed_identity_non_default_increment_value(sql_server_conn):
+#     ### Arrange ###
+#     a = Table("dbo", "A")
+#     identity_start_value: int = 4
+#     identity_increment_value: int = 7
+#     _execute_query(sql_server_conn, f"CREATE TABLE {a.to_string()} (Id INT IDENTITY({identity_start_value},{identity_increment_value}), Val INT)")
+#     _insert_bulk(sql_server_conn, f"INSERT INTO {a.to_string()} (Val) values(?)", [[i] for i in range(0, 100)])
+#     inserted_a = _execute_scalar(sql_server_conn,  f"SELECT COUNT(1) FROM {a.to_string()}")
+#
+#     ### Act ###
+#     checkpoint = Checkpoint(db_adapter=SqlServerAdapter(), reseed_identity=True)
+#     checkpoint.reset(sql_server_conn)
+#     _execute_query(sql_server_conn, f"INSERT INTO {a.to_string()} (Val) values(1234)")
+#     _execute_query(sql_server_conn, f"INSERT INTO {a.to_string()} (Val) values(4321)")
+#
+#     ### Assert ###
+#     assert inserted_a == 100, "100 records were not inserted to DB"
+#     assert _execute_scalar(sql_server_conn,  f"SELECT MAX(id) FROM {a.to_string()}") == (identity_start_value + identity_increment_value), "Wrong reseed of Identity compared to initial seed value"
 
-def test_reseed_according_to_identity_initial_seed_value_table_with_schema(sql_server_conn):
+
+def test_mssql_reseed_identity_non_default_start_value_with_schema(sql_server_conn):
     ### Arrange ###
+    a = Table("dbo", "A")
+    b = Table("base", "B")
     _create_schema(sql_server_conn, "base")
-    _execute_query(sql_server_conn, f"CREATE TABLE dbo.A (Id INT IDENTITY(1001,1), Val INT)")
-    _execute_query(sql_server_conn, f"CREATE TABLE base.B (Id INT IDENTITY(1001,1), Val INT)")
-    _insert_bulk(sql_server_conn, f"INSERT INTO dbo.A (Val) values(?)", [[i] for i in range(0, 100)])
-    _insert_bulk(sql_server_conn, f"INSERT INTO base.B (Val) values(?)", [[i] for i in range(0, 100)])
-    max_id_a = _execute_scalar(sql_server_conn,  f"SELECT MAX(id) FROM dbo.A")
-    max_id_b = _execute_scalar(sql_server_conn,  f"SELECT MAX(id) FROM base.B")
+    _execute_query(sql_server_conn, f"CREATE TABLE {a.to_string()} (Id INT IDENTITY(1001,1), Val INT)")
+    _execute_query(sql_server_conn, f"CREATE TABLE {b.to_string()} (Id INT IDENTITY(1001,1), Val INT)")
+    _insert_bulk(sql_server_conn, f"INSERT INTO {a.to_string()} (Val) values(?)", [[i] for i in range(0, 100)])
+    _insert_bulk(sql_server_conn, f"INSERT INTO {b.to_string()} (Val) values(?)", [[i] for i in range(0, 100)])
+    max_id_a = _execute_scalar(sql_server_conn,  f"SELECT MAX(id) FROM {a.to_string()}")
+    max_id_b = _execute_scalar(sql_server_conn,  f"SELECT MAX(id) FROM {b.to_string()}")
 
     ### Act ###
-    Chk = Checkpoint(db_adapter=SqlServerAdapter(), reseed_identity=True, schemas_to_include=["dbo"])
-    Chk.reset(sql_server_conn)
-    _execute_query(sql_server_conn, f"INSERT INTO dbo.A (Val) values(1234)")
-    _execute_query(sql_server_conn, f"INSERT INTO base.B (Val) values(4321)")
+    checkpoint = Checkpoint(db_adapter=SqlServerAdapter(), reseed_identity=True, schemas_to_include=["dbo"])
+    checkpoint.reset(sql_server_conn)
+    _execute_query(sql_server_conn, f"INSERT INTO {a.to_string()} (Val) values(1234)")
+    _execute_query(sql_server_conn, f"INSERT INTO {b.to_string()} (Val) values(4321)")
 
     ### Assert ###
     assert max_id_a == 1100, "Max ID is not as expected"
     assert max_id_b == 1100, "Max ID is not as expected"
-    assert _execute_scalar(sql_server_conn, f"Select MAX(id) from dbo.A") == 1001, "Identity did not reset"
-    assert _execute_scalar(sql_server_conn, f"Select MAX(Id) from base.B") == 1101, "Identity was reseeded"
+    assert _execute_scalar(sql_server_conn, f"Select MAX(id) from {a.to_string()}") == 1001, "Identity did not reset"
+    assert _execute_scalar(sql_server_conn, f"Select MAX(Id) from {b.to_string()}") == 1101, "Identity was reseeded"
 
 
 
-def test_reseed_according_to_identity_initial_seed_value_table_with_schema_never_inserted_data(sql_server_conn):
+def test_mssql_reseed_identity_non_default_start_value_with_schema_never_inserted_data(sql_server_conn):
     ### Arrange ###
-    _execute_query(sql_server_conn, f"CREATE TABLE dbo.A (Id INT IDENTITY(1001,1), Val INT)")
+    a = Table("dbo", "A")
+    _execute_query(sql_server_conn, f"CREATE TABLE {a.to_string()} (Id INT IDENTITY(1001,1), Val INT)")
 
     ### Act ###
-    Chk = Checkpoint(db_adapter=SqlServerAdapter(), reseed_identity=True)
+    Chk = Checkpoint(db_adapter=SqlServerAdapter(), reseed_identity=True, schemas_to_include=["dbo"])
     Chk.reset(sql_server_conn)
-    _execute_query(sql_server_conn, f"INSERT INTO dbo.A (Val) values(0)")
+    _execute_query(sql_server_conn, f"INSERT INTO {a.to_string()} (Val) values(0)")
 
     ### Assert ###
-    assert _execute_scalar(sql_server_conn, f"Select MAX(Id) from dbo.A") == 1001, "Wrong reseed of Identity in empty table"
+    assert _execute_scalar(sql_server_conn, f"Select MAX(Id) from {a.to_string()}") == 1001, "Wrong reseed of Identity in empty table"
 
 
-
-def test_delete_temporal_tables_data(sql_server_conn):
-    AT = TemporalTable("dbo", "Foo", "dbo", "FooHistory")
-    _create_temporal_table(sql_server_conn, AT)
+def test_mssql_delete_temporal_tables_data(sql_server_conn):
+    at = TemporalTable("dbo", "Foo", "dbo", "FooHistory")
+    _create_temporal_table(sql_server_conn, at)
     
     ### Arrange ###
-    _execute_query(sql_server_conn, f"INSERT INTO {AT.schema}.{AT.table_name} (Id) VALUES (1)")
-    _execute_query(sql_server_conn, f"UPDATE {AT.schema}.{AT.table_name} SET Id = 2 Where Id = 1")
-    _execute_query(sql_server_conn, f"UPDATE {AT.schema}.{AT.table_name} SET Id = 3 Where Id = 2")
-    records_at = _execute_scalar(sql_server_conn,  f"SELECT COUNT(1) FROM {AT.table_to_string()}")
-    records_ath = _execute_scalar(sql_server_conn,  f"SELECT COUNT(1) FROM {AT.history_table_to_string()}")
+    _execute_query(sql_server_conn, f"INSERT INTO {at.schema}.{at.table_name} (Id) VALUES (1)")
+    _execute_query(sql_server_conn, f"UPDATE {at.schema}.{at.table_name} SET Id = 2 Where Id = 1")
+    _execute_query(sql_server_conn, f"UPDATE {at.schema}.{at.table_name} SET Id = 3 Where Id = 2")
+    records_at = _execute_scalar(sql_server_conn,  f"SELECT COUNT(1) FROM {at.table_to_string()}")
+    records_ath = _execute_scalar(sql_server_conn,  f"SELECT COUNT(1) FROM {at.history_table_to_string()}")
 
     ### Act ###
-    Chk = Checkpoint(db_adapter=SqlServerAdapter(), check_temporal_table=True)
-    Chk.reset(sql_server_conn)
+    checkpoint = Checkpoint(db_adapter=SqlServerAdapter(), check_temporal_table=True)
+    checkpoint.reset(sql_server_conn)
 
     ### Assert ###
     assert records_at == 1, "Records in main table not as expected"
     assert records_ath == 2, "Records in history table not as expected"
-    assert _execute_scalar(sql_server_conn, f"SELECT COUNT(1) FROM {AT.table_to_string()}") == 0, "Records were not deleted from temporal table"
-    assert _execute_scalar(sql_server_conn, f"SELECT COUNT(1) FROM {AT.history_table_to_string()}") == 0, "Records were not deleted from temporal history table"
+    assert _execute_scalar(sql_server_conn, f"SELECT COUNT(1) FROM {at.table_to_string()}") == 0, "Records were not deleted from temporal table"
+    assert _execute_scalar(sql_server_conn, f"SELECT COUNT(1) FROM {at.history_table_to_string()}") == 0, "Records were not deleted from temporal history table"
 
 
 
-def test_delete_temporal_tables_anonymous_history_table(sql_server_conn):
-    AT = TemporalTable("dbo", "Foo", None, None)
-    _create_temporal_table(sql_server_conn, AT, is_anonymous_table=True)
-    history_table_name = _execute_scalar(sql_server_conn, f"SELECT t1.name FROM sys.tables t1 WHERE t1.object_id = (SELECT history_table_id FROM sys.tables t2 WHERE t2.name = '{AT.table_name}')")
-    AT = TemporalTable("dbo", "Foo", "dbo", history_table_name)
+def test_mssql_delete_temporal_tables_anonymous_history_table(sql_server_conn):
+    at = TemporalTable("dbo", "Foo", None, None)
+    _create_temporal_table(sql_server_conn, at, is_anonymous_table=True)
+    history_table_name = _execute_scalar(sql_server_conn, f"SELECT t1.name FROM sys.tables t1 WHERE t1.object_id = (SELECT history_table_id FROM sys.tables t2 WHERE t2.name = '{at.table_name}')")
+    at = TemporalTable("dbo", "Foo", "dbo", history_table_name)
 
     ### Arrange ###
-    _execute_query(sql_server_conn, f"INSERT INTO {AT.schema}.{AT.table_name} (Id) VALUES (1)")
-    _execute_query(sql_server_conn, f"UPDATE {AT.schema}.{AT.table_name} SET Id = 2 Where Id = 1")
-    _execute_query(sql_server_conn, f"UPDATE {AT.schema}.{AT.table_name} SET Id = 3 Where Id = 2")
-    records_at = _execute_scalar(sql_server_conn,  f"SELECT COUNT(1) FROM {AT.table_to_string()}")
-    records_ath = _execute_scalar(sql_server_conn,  f"SELECT COUNT(1) FROM {AT.history_table_to_string()}")
+    _execute_query(sql_server_conn, f"INSERT INTO {at.schema}.{at.table_name} (Id) VALUES (1)")
+    _execute_query(sql_server_conn, f"UPDATE {at.schema}.{at.table_name} SET Id = 2 Where Id = 1")
+    _execute_query(sql_server_conn, f"UPDATE {at.schema}.{at.table_name} SET Id = 3 Where Id = 2")
+    records_at = _execute_scalar(sql_server_conn,  f"SELECT COUNT(1) FROM {at.table_to_string()}")
+    records_ath = _execute_scalar(sql_server_conn,  f"SELECT COUNT(1) FROM {at.history_table_to_string()}")
 
     ### Act ###
-    Chk = Checkpoint(db_adapter=SqlServerAdapter(), check_temporal_table=True)
-    Chk.reset(sql_server_conn)
+    checkpoint = Checkpoint(db_adapter=SqlServerAdapter(), check_temporal_table=True)
+    checkpoint.reset(sql_server_conn)
 
     ### Assert ###
     assert records_at == 1, "Records in main table not as expected"
     assert records_ath == 2, "Records in history table not as expected"
-    assert _execute_scalar(sql_server_conn, f"SELECT COUNT(1) FROM {AT.table_to_string()}") == 0, "Records were not deleted from temporal table"
-    assert _execute_scalar(sql_server_conn, f"SELECT COUNT(1) FROM {AT.history_table_to_string()}") == 0, "Records were not deleted from temporal history table"
+    assert _execute_scalar(sql_server_conn, f"SELECT COUNT(1) FROM {at.table_to_string()}") == 0, "Records were not deleted from temporal table"
+    assert _execute_scalar(sql_server_conn, f"SELECT COUNT(1) FROM {at.history_table_to_string()}") == 0, "Records were not deleted from temporal history table"
 
 
 
-def test_delete_temporal_tables_data_different_table_schemas(sql_server_conn):
+def test_mssql_delete_temporal_tables_data_different_table_schemas(sql_server_conn):
     _create_schema(sql_server_conn, "base")
-    AT = TemporalTable("dbo", "Foo", "base", "FooHistory")
-    _create_temporal_table(sql_server_conn, AT)
+    at = TemporalTable("dbo", "Foo", "base", "FooHistory")
+    _create_temporal_table(sql_server_conn, at)
     
     ### Arrange ###
-    _execute_query(sql_server_conn, f"INSERT INTO {AT.schema}.{AT.table_name} (Id) VALUES (1)")
-    _execute_query(sql_server_conn, f"UPDATE {AT.schema}.{AT.table_name} SET Id = 2 Where Id = 1")
-    _execute_query(sql_server_conn, f"UPDATE {AT.schema}.{AT.table_name} SET Id = 3 Where Id = 2")
-    records_at = _execute_scalar(sql_server_conn,  f"SELECT COUNT(1) FROM {AT.table_to_string()}")
-    records_ath = _execute_scalar(sql_server_conn,  f"SELECT COUNT(1) FROM {AT.history_table_to_string()}")
+    _execute_query(sql_server_conn, f"INSERT INTO {at.schema}.{at.table_name} (Id) VALUES (1)")
+    _execute_query(sql_server_conn, f"UPDATE {at.schema}.{at.table_name} SET Id = 2 Where Id = 1")
+    _execute_query(sql_server_conn, f"UPDATE {at.schema}.{at.table_name} SET Id = 3 Where Id = 2")
+    records_at = _execute_scalar(sql_server_conn,  f"SELECT COUNT(1) FROM {at.table_to_string()}")
+    records_ath = _execute_scalar(sql_server_conn,  f"SELECT COUNT(1) FROM {at.history_table_to_string()}")
 
     ### Act ###
-    Chk = Checkpoint(db_adapter=SqlServerAdapter(), check_temporal_table=True)
-    Chk.reset(sql_server_conn)
+    checkpoint = Checkpoint(db_adapter=SqlServerAdapter(), check_temporal_table=True)
+    checkpoint.reset(sql_server_conn)
 
     ### Assert ###
     assert records_at == 1, "Records in main table not as expected"
     assert records_ath == 2, "Records in history table not as expected"
-    assert _execute_scalar(sql_server_conn, f"SELECT COUNT(1) FROM {AT.table_to_string()}") == 0, "Records were not deleted from temporal table"
-    assert _execute_scalar(sql_server_conn, f"SELECT COUNT(1) FROM {AT.history_table_to_string()}") == 0, "Records were not deleted from temporal history table"
+    assert _execute_scalar(sql_server_conn, f"SELECT COUNT(1) FROM {at.table_to_string()}") == 0, "Records were not deleted from temporal table"
+    assert _execute_scalar(sql_server_conn, f"SELECT COUNT(1) FROM {at.history_table_to_string()}") == 0, "Records were not deleted from temporal history table"

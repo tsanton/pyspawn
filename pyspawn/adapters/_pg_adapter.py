@@ -109,27 +109,30 @@ class PgAdapter(DbAdapter):
         This more complex implementation accommodates use cases where the user may have renamed their
         sequences in a manner where a regex parse would fail.
         """
-        # table_names:List[str] = ",".join([x.get_full_name("'") for x in tables_to_reset])
         table_names:List[str] = ",".join(["'" + x.get_full_name(self._quote_char) + "'" for x in tables_to_reset])
         cmd_txt:str = f"""
-        CREATE OR REPLACE FUNCTION pg_temp.reset_sequence(seq text) RETURNS void AS $$
+        CREATE OR REPLACE FUNCTION pg_temp.reset_sequence(seq text, start_val int, increment_val int) RETURNS void AS $$
         DECLARE
         BEGIN
             /* ALTER SEQUENCE doesn't work with variables, so we construct a statement and execute that instead. */
-            EXECUTE 'ALTER SEQUENCE ' || seq || ' RESTART;';
+            EXECUTE 'alter sequence ' || seq || ' restart with ' || start_val || ' increment ' || increment_val;
         END;
         $$ LANGUAGE plpgsql;
         
         WITH all_sequences AS 
         (
-            SELECT pg_get_serial_sequence(quote_ident(table_schema) || '.' || quote_ident(table_name), column_name) AS sequence_name
+            SELECT 
+                pg_get_serial_sequence(quote_ident(table_schema) || '.' || quote_ident(table_name), column_name) AS sequence_name,
+                is_identity,
+                --coalesce to handle sequences whom do not have start or increment values (fixed 1,1)
+                coalesce(identity_start, '1')::int start_val,
+                coalesce(identity_increment, '1')::int increment_val
             FROM information_schema.columns
             WHERE pg_get_serial_sequence(quote_ident(table_schema) || '.' || quote_ident(table_name), column_name) IS NOT NULL
-            AND '""' || table_schema || '"".""' || table_name || '""' IN ({table_names})
+            AND  '"' || table_schema || '"."' || table_name || '"' IN ({table_names})
         )
-        SELECT pg_temp.reset_sequence(s.sequence_name) FROM all_sequences s;
+        SELECT pg_temp.reset_sequence(s.sequence_name, s.start_val, s.increment_val) FROM all_sequences s;
         """
-        print(cmd_txt)
         return cmd_txt
 
 

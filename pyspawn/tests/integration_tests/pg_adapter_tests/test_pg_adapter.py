@@ -263,22 +263,248 @@ def test_pg_include_schema(pg_conn):
     pg_conn.close()
 
 
-# def test_pg_reseed_identity(pg_conn):
-#     ### Arrange ###
-#     a = Table("public", "a")
-#     _execute_query(pg_conn, f"CREATE TABLE {a.to_string()} (id INT GENERATED ALWAYS AS IDENTITY(START WITH 1 INCREMENT BY 1), Val INT)")
-#     _insert_bulk(pg_conn, f"INSERT INTO {a.to_string()} (Val) values(%s)", [[i] for i in range(0, 100)])
-#     inserted_a = _execute_scalar(pg_conn,  f"SELECT COUNT(1) FROM {a.to_string()}")
-#
-#     ### Act ###
-#     checkpoint = Checkpoint(db_adapter=PgAdapter(), reseed_identity=True)
-#     checkpoint.reset(pg_conn)
-#     _execute_query(pg_conn, f"INSERT INTO {a.to_string()} (Val) values(1234)")
-#
-#     ### Assert ###
-#     assert inserted_a == 100, "100 records were not inserted to DB"
-#     assert _execute_scalar(pg_conn, f"Select MAX(Id) from {a.to_string()}") == 1, "Identity did not reset"
+def test_pg_reseed_identity(pg_conn):
+    ### Arrange ###
+    a = Table("public", "a")
+    _execute_query(pg_conn, f"CREATE TABLE {a.to_string()} (id INT GENERATED ALWAYS AS IDENTITY(START WITH 1 INCREMENT BY 1), Val INT)")
+    _insert_bulk(pg_conn, f"INSERT INTO {a.to_string()} (Val) values(%s)", [[i] for i in range(0, 100)])
+    inserted_a = _execute_scalar(pg_conn,  f"SELECT COUNT(1) FROM {a.to_string()}")
+
+    ### Act ###
+    checkpoint = Checkpoint(db_adapter=PgAdapter(), reseed_identity=True)
+    checkpoint.reset(pg_conn)
+    _execute_query(pg_conn, f"insert into {a.to_string()} (val) values(1234)")
+
+    ### Assert ###
+    assert inserted_a == 100, "100 records were not inserted to DB"
+    assert _execute_scalar(pg_conn, f"select max(id) from {a.to_string()}") == 1, "Identity did not reset"
 
 
-# def test_pg_reseed_serial(sql_server_conn):
-#     pass
+def test_pg_reseed_serial(pg_conn):
+    ### Arrange ###
+    a = Table("public", "a")
+    _execute_query(pg_conn, f"create table {a.to_string()} (id serial, val int)")
+    _insert_bulk(pg_conn, f"insert into {a.to_string()} (val) values(%s)", [[i] for i in range(0, 100)])
+    inserted_a = _execute_scalar(pg_conn, f"select count(1) from {a.to_string()}")
+
+    ### Act ###
+    checkpoint = Checkpoint(db_adapter=PgAdapter(), reseed_identity=True)
+    checkpoint.reset(pg_conn)
+    _execute_query(pg_conn, f"insert into {a.to_string()} (val) values(1234)")
+
+    ### Assert ###
+    assert inserted_a == 100, "100 records were not inserted to DB"
+    assert _execute_scalar(pg_conn, f"select max(id) from {a.to_string()}") == 1, "Serial did not reset"
+
+
+def test_pg_reseed_identity_two_tables(pg_conn):
+    ### Arrange ###
+    a = Table("public", "a")
+    b = Table("public", "b")
+    _execute_query(pg_conn, f"create table {a.to_string()} (id int generated always as identity(start with 1 increment by 1), val int)")
+    _execute_query(pg_conn, f"create table {b.to_string()} (id int generated always as identity(start with 1 increment by 1), val int)")
+    _insert_bulk(pg_conn, f"insert into {a.to_string()} (val) values(%s)", [[i] for i in range(0, 100)])
+    _insert_bulk(pg_conn, f"insert into {b.to_string()} (val) values(%s)", [[i] for i in range(0, 100)])
+    inserted_a = _execute_scalar(pg_conn, f"select count(1) from {a.to_string()}")
+    inserted_b = _execute_scalar(pg_conn, f"select count(1) from {b.to_string()}")
+
+    ### Act ###
+    checkpoint = Checkpoint(db_adapter=PgAdapter(), reseed_identity=True)
+    checkpoint.reset(pg_conn)
+    _execute_query(pg_conn, f"insert into {a.to_string()} (val) values(1234)")
+    _execute_query(pg_conn, f"insert into {b.to_string()} (val) values(4321)")
+
+    ### Assert ###
+    assert inserted_a == 100, "100 records were not inserted to DB"
+    assert inserted_b == 100, "100 records were not inserted to DB"
+    assert _execute_scalar(pg_conn, f"select max(id) from {a.to_string()}") == 1, "Identity did not reset"
+    assert _execute_scalar(pg_conn, f"select max(id) from {b.to_string()}") == 1, "Identity did not reset"
+
+
+def test_pg_reseed_serial_two_tables(pg_conn):
+    ### Arrange ###
+    a = Table("public", "a")
+    b = Table("public", "b")
+    _execute_query(pg_conn, f"create table {a.to_string()} (id serial, val int)")
+    _execute_query(pg_conn, f"create table {b.to_string()} (id serial, val int)")
+    _insert_bulk(pg_conn, f"insert into {a.to_string()} (val) values(%s)", [[i] for i in range(0, 100)])
+    _insert_bulk(pg_conn, f"insert into {b.to_string()} (val) values(%s)", [[i] for i in range(0, 100)])
+    inserted_a = _execute_scalar(pg_conn, f"select count(1) from {a.to_string()}")
+    inserted_b = _execute_scalar(pg_conn, f"select count(1) from {b.to_string()}")
+
+    ### Act ###
+    checkpoint = Checkpoint(db_adapter=PgAdapter(), tables_to_include=["a"], reseed_identity=True)
+    checkpoint.reset(pg_conn)
+    _execute_query(pg_conn, f"insert into {a.to_string()} (val) values(1234)")
+    _execute_query(pg_conn, f"insert into {b.to_string()} (val) values(4321)")
+
+    ### Assert ###
+    assert inserted_a == 100, "100 records were not inserted to DB"
+    assert inserted_b == 100, "100 records were not inserted to DB"
+    assert _execute_scalar(pg_conn, f"select max(id) from {a.to_string()}") == 1, "Serial did not reset correctly"
+    assert _execute_scalar(pg_conn, f"select max(id) from {b.to_string()}") == 101, "Serial did not reset correctly"
+
+
+def test_pg_reseed_identity_table_never_inserted_data(pg_conn):
+    ### Arrange ###
+    a = Table("public", "a")
+    _execute_query(pg_conn, f"create table {a.to_string()} (id int generated always as identity(start with 1 increment by 1), val int)")
+
+    ### Act ###
+    checkpoint = Checkpoint(db_adapter=PgAdapter(), reseed_identity=True)
+    checkpoint.reset(pg_conn)
+    _execute_query(pg_conn, f"insert into {a.to_string()} (val) values(0)")
+
+    ### Assert ###
+    assert _execute_scalar(pg_conn, f"select max(id) from {a.to_string()}") == 1, "Wrong reseed of Identity in empty table"
+
+
+def test_pg_reseed_serial_table_never_inserted_data(pg_conn):
+    ### Arrange ###
+    a = Table("public", "a")
+    _execute_query(pg_conn, f"create table {a.to_string()} (id serial, val int)")
+
+    ### Act ###
+    checkpoint = Checkpoint(db_adapter=PgAdapter(), reseed_identity=True)
+    checkpoint.reset(pg_conn)
+    _execute_query(pg_conn, f"insert into {a.to_string()} (val) values(0)")
+
+    ### Assert ###
+    assert _execute_scalar(pg_conn, f"select max(id) from {a.to_string()}") == 1, "Wrong reseed of Identity in empty table"
+
+
+def test_pg_reseed_identity_non_default_start_value(pg_conn):
+    ### Arrange ###
+    a = Table("public", "a")
+    identity_start_value:int = 12
+    _execute_query(pg_conn, f"CREATE TABLE {a.to_string()} (id INT GENERATED ALWAYS AS IDENTITY(START WITH {identity_start_value} INCREMENT BY 1), Val INT)")
+    _insert_bulk(pg_conn, f"INSERT INTO {a.to_string()} (Val) values(%s)", [[i] for i in range(0, 100)])
+    inserted_a = _execute_scalar(pg_conn,  f"SELECT COUNT(1) FROM {a.to_string()}")
+
+    ### Act ###
+    checkpoint = Checkpoint(db_adapter=PgAdapter(), reseed_identity=True)
+    checkpoint.reset(pg_conn)
+    _execute_query(pg_conn, f"insert into {a.to_string()} (val) values(1234)")
+
+    ### Assert ###
+    assert inserted_a == 100, "100 records were not inserted to DB"
+    assert _execute_scalar(pg_conn, f"select max(id) from {a.to_string()}") == identity_start_value, "Identity did not reset correctly"
+
+
+def test_pg_reseed_identity_non_default_increment_value(pg_conn):
+    ### Arrange ###
+    a = Table("public", "a")
+    identity_start_value:int = 4
+    identity_increment_value:int = 7
+    _execute_query(pg_conn, f"CREATE TABLE {a.to_string()} (id INT GENERATED ALWAYS AS IDENTITY(START WITH {identity_start_value} INCREMENT BY {identity_increment_value}), Val INT)")
+    _insert_bulk(pg_conn, f"INSERT INTO {a.to_string()} (Val) values(%s)", [[i] for i in range(0, 100)])
+    inserted_a = _execute_scalar(pg_conn,  f"SELECT COUNT(1) FROM {a.to_string()}")
+
+    ### Act ###
+    checkpoint = Checkpoint(db_adapter=PgAdapter(), reseed_identity=True)
+    checkpoint.reset(pg_conn)
+    _execute_query(pg_conn, f"insert into {a.to_string()} (val) values(1234)")
+    _execute_query(pg_conn, f"insert into {a.to_string()} (val) values(4321)")
+
+    ### Assert ###
+    assert inserted_a == 100, "100 records were not inserted to DB"
+    assert _execute_scalar(pg_conn, f"select max(id) from {a.to_string()}") == (identity_start_value + identity_increment_value), "Identity did not reset correctly"
+
+
+
+def test_pg_reseed_identity_with_schema(pg_conn):
+    ### Arrange ###
+    a = Table("public", "a")
+    b = Table("foo", "b")
+    _create_schema(pg_conn, "foo")
+    _execute_query(pg_conn, f"create table {a.to_string()} (id int generated always as identity(start with 1 increment by 1), val int)")
+    _execute_query(pg_conn, f"create table {b.to_string()} (id int generated always as identity(start with 1 increment by 1), val int)")
+    _insert_bulk(pg_conn, f"insert into {a.to_string()} (val) values(%s)", [[i] for i in range(0, 100)])
+    _insert_bulk(pg_conn, f"insert into {b.to_string()} (val) values(%s)", [[i] for i in range(0, 100)])
+    inserted_a = _execute_scalar(pg_conn, f"select count(1) from {a.to_string()}")
+    inserted_b = _execute_scalar(pg_conn, f"select count(1) from {b.to_string()}")
+
+    ### Act ###
+    checkpoint = Checkpoint(db_adapter=PgAdapter(), schemas_to_include=["public"], reseed_identity=True)
+    checkpoint.reset(pg_conn)
+    _execute_query(pg_conn, f"insert into {a.to_string()} (val) values(1234)")
+    _execute_query(pg_conn, f"insert into {b.to_string()} (val) values(4321)")
+
+    ### Assert ###
+    assert inserted_a == 100, "100 records were not inserted to DB"
+    assert inserted_b == 100, "100 records were not inserted to DB"
+    assert _execute_scalar(pg_conn, f"select max(id) from {a.to_string()}") == 1, "Identity did not reset"
+    assert _execute_scalar(pg_conn, f"select max(id) from {b.to_string()}") == 101, "Identity did not reset"
+
+
+def test_pg_reseed_serial_with_schema(pg_conn):
+    ### Arrange ###
+    a = Table("foo", "a")
+    b = Table("public", "b")
+    _create_schema(pg_conn, "foo")
+    _execute_query(pg_conn, f"create table {a.to_string()} (id serial, val int)")
+    _execute_query(pg_conn, f"create table {b.to_string()} (id serial, val int)")
+    _insert_bulk(pg_conn, f"insert into {a.to_string()} (val) values(%s)", [[i] for i in range(0, 100)])
+    _insert_bulk(pg_conn, f"insert into {b.to_string()} (val) values(%s)", [[i] for i in range(0, 100)])
+    inserted_a = _execute_scalar(pg_conn, f"select count(1) from {a.to_string()}")
+    inserted_b = _execute_scalar(pg_conn, f"select count(1) from {b.to_string()}")
+
+    ### Act ###
+    checkpoint = Checkpoint(db_adapter=PgAdapter(), schemas_to_ignore=["public"], reseed_identity=True)
+    checkpoint.reset(pg_conn)
+    _execute_query(pg_conn, f"insert into {a.to_string()} (val) values(1234)")
+    _execute_query(pg_conn, f"insert into {b.to_string()} (val) values(4321)")
+
+    ### Assert ###
+    assert inserted_a == 100, "100 records were not inserted to DB"
+    assert inserted_b == 100, "100 records were not inserted to DB"
+    assert _execute_scalar(pg_conn, f"select max(id) from {a.to_string()}") == 1, "Serial did not reset correctly"
+    assert _execute_scalar(pg_conn, f"select max(id) from {b.to_string()}") == 101, "Serial did not reset correctly"
+
+
+def test_pg_reseed_identity_with_table(pg_conn):
+    ### Arrange ###
+    a = Table("public", "a")
+    b = Table("public", "b")
+    _execute_query(pg_conn, f"create table {a.to_string()} (id int generated always as identity(start with 1 increment by 1), val int)")
+    _execute_query(pg_conn, f"create table {b.to_string()} (id int generated always as identity(start with 1 increment by 1), val int)")
+    _insert_bulk(pg_conn, f"insert into {a.to_string()} (val) values(%s)", [[i] for i in range(0, 100)])
+    _insert_bulk(pg_conn, f"insert into {b.to_string()} (val) values(%s)", [[i] for i in range(0, 100)])
+    inserted_a = _execute_scalar(pg_conn, f"select count(1) from {a.to_string()}")
+    inserted_b = _execute_scalar(pg_conn, f"select count(1) from {b.to_string()}")
+
+    ### Act ###
+    checkpoint = Checkpoint(db_adapter=PgAdapter(), tables_to_include=["a"], reseed_identity=True)
+    checkpoint.reset(pg_conn)
+    _execute_query(pg_conn, f"insert into {a.to_string()} (val) values(1234)")
+    _execute_query(pg_conn, f"insert into {b.to_string()} (val) values(4321)")
+
+    ### Assert ###
+    assert inserted_a == 100, "100 records were not inserted to DB"
+    assert inserted_b == 100, "100 records were not inserted to DB"
+    assert _execute_scalar(pg_conn, f"select max(id) from {a.to_string()}") == 1, "Identity did not reset"
+    assert _execute_scalar(pg_conn, f"select max(id) from {b.to_string()}") == 101, "Identity did not reset"
+
+
+def test_pg_reseed_serial_with_table(pg_conn):
+    ### Arrange ###
+    a = Table("public", "a")
+    b = Table("public", "b")
+    _execute_query(pg_conn, f"create table {a.to_string()} (id serial, val int)")
+    _execute_query(pg_conn, f"create table {b.to_string()} (id serial, val int)")
+    _insert_bulk(pg_conn, f"insert into {a.to_string()} (val) values(%s)", [[i] for i in range(0, 100)])
+    _insert_bulk(pg_conn, f"insert into {b.to_string()} (val) values(%s)", [[i] for i in range(0, 100)])
+    inserted_a = _execute_scalar(pg_conn, f"select count(1) from {a.to_string()}")
+    inserted_b = _execute_scalar(pg_conn, f"select count(1) from {b.to_string()}")
+
+    ### Act ###
+    checkpoint = Checkpoint(db_adapter=PgAdapter(), tables_to_ignore=["b"], reseed_identity=True)
+    checkpoint.reset(pg_conn)
+    _execute_query(pg_conn, f"insert into {a.to_string()} (val) values(1234)")
+    _execute_query(pg_conn, f"insert into {b.to_string()} (val) values(4321)")
+
+    ### Assert ###
+    assert inserted_a == 100, "100 records were not inserted to DB"
+    assert inserted_b == 100, "100 records were not inserted to DB"
+    assert _execute_scalar(pg_conn, f"select max(id) from {a.to_string()}") == 1, "Serial did not reset correctly"
+    assert _execute_scalar(pg_conn, f"select max(id) from {b.to_string()}") == 101, "Serial did not reset correctly"
