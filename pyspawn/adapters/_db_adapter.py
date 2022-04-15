@@ -17,6 +17,11 @@ class DbAdapter(abc.ABC):
         raise NotImplementedError
 
     @abc.abstractmethod
+    def get_database_name_command_text(self) -> str:
+        """Returns a query that yields the database name from the server"""
+        pass
+
+    @abc.abstractmethod
     def get_tables_command_text(self, checkpoint: "Checkpoint") -> str:
         """Build a query that selects out all schema- and table names for selected schemas and tables."""
         pass

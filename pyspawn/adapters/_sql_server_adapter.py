@@ -13,8 +13,13 @@ class SqlServerAdapter(DbAdapter):
     def __init__(self):
         super().__init__()
 
+
+    def get_database_name_command_text(self) -> str:
+        return "SELECT DB_NAME()"
+
+
     def get_tables_command_text(self, checkpoint: "Checkpoint") -> str:
-        """Build a query that selects out all schema- and table names for selected schemas and tables."""
+        """Build a query that selects out all schema- and table names for scoped schemas and tables."""
         cmd_txt = """
         select 
             s.name SchemaName
@@ -67,33 +72,33 @@ class SqlServerAdapter(DbAdapter):
         """Build a query that selects out all ForeignKey (FK) to PrimaryKey (PK) relations for selected schemas and tables."""
         cmd_txt = """
         select
-            fk_schema.name ForeignKeySchemaName
-            , so_fk.name ForeignKeyTableName
-            , pk_schema.name PrimaryKeySchemaName 
-            , so_pk.name PrimaryKeyTableName
+            chs.name ChildSchemaName
+            , cht.name ChildTableName
+            , pas.name ParentSchemaName 
+            , pat.name ParentTableName
             , sfk.name ForeighKeyName
         from sys.foreign_keys sfk
-        inner join sys.objects so_pk on sfk.referenced_object_id = so_pk.object_id
-        inner join sys.schemas pk_schema on so_pk.schema_id = pk_schema.schema_id
-        inner join sys.objects so_fk on sfk.parent_object_id = so_fk.object_id			
-        inner join sys.schemas fk_schema on so_fk.schema_id = fk_schema.schema_id
+        inner join sys.objects pat on sfk.referenced_object_id = pat.object_id
+        inner join sys.schemas pas on pat.schema_id = pas.schema_id
+        inner join sys.objects cht on sfk.parent_object_id = cht.object_id			
+        inner join sys.schemas chs on cht.schema_id = chs.schema_id
         where 1=1
         """
         if len(checkpoint.tables_to_ignore) > 0:
             tables_to_ignore = ",".join(["'" + x + "'" for x in checkpoint.tables_to_ignore])
-            cmd_txt += f"AND so_pk.name NOT IN ({tables_to_ignore})\n"
+            cmd_txt += f"AND pat.name NOT IN ({tables_to_ignore})\n"
 
         if len(checkpoint.tables_to_include) > 0:
             tables_to_include = ",".join(["'" + x + "'" for x in checkpoint.tables_to_include])
-            cmd_txt += f"AND so_pk.name IN ({tables_to_include})\n"
+            cmd_txt += f"AND pat.name IN ({tables_to_include})\n"
         
         if len(checkpoint.schemas_to_ignore) > 0:
             schemas_to_ignore = ",".join(["'" + x + "'" for x in checkpoint.schemas_to_ignore])
-            cmd_txt += f"AND pk_schema.name NOT IN ({schemas_to_ignore})\n"
+            cmd_txt += f"AND pas.name NOT IN ({schemas_to_ignore})\n"
         
         if len(checkpoint.schemas_to_include) > 0:
             schemas_to_include = ",".join(["'" + x + "'" for x in checkpoint.schemas_to_include])
-            cmd_txt += f"AND pk_schema.name IN ({schemas_to_include})\n"
+            cmd_txt += f"AND pas.name IN ({schemas_to_include})\n"
         return cmd_txt
 
 

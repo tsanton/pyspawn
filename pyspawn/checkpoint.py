@@ -11,12 +11,6 @@ from pyspawn._graph.table import Table
 from pyspawn._graph.graph_builder import GraphBuilder
 
 
-
-
-
-
-
-
 class Checkpoint:
     """Initialize Checkpoint to run reset() between all your integration tests to ensure a clean test DB."""
 
@@ -37,10 +31,12 @@ class Checkpoint:
 
 
 
-    def reset(self, conn: pyodbc.Connection):
-        """Resets your DB."""
+    def reset(self, conn):
+        """Resets your DB. Expects a connection with autocommit = True"""
         if self._delete_sql == "":
-            self._database_name = conn.getinfo(pyodbc.SQL_DATABASE_NAME)
+            with conn.cursor() as cur:
+                cur.execute(self.db_adapter.get_database_name_command_text())
+                self._database_name = cur.fetchone()[0]
             self._build_delete_tables(conn)
         
         if len(self._temporal_tables) > 0:
@@ -56,27 +52,18 @@ class Checkpoint:
                 cursor.execute(turn_on_versioning_cmd_txt)
 
 
-
     def _execute_alter_system_versioning(self, conn: pyodbc.Connection, cmd_txt: str) -> None:
         """Turn on/off system versioning for temporal tables."""
-        conn.autocommit = False
         with conn.cursor() as cursor:
             cursor.execute(cmd_txt)
-            cursor.commit()
-        conn.autocommit = True
         
-
 
     def _execute_delete_sql(self, conn: pyodbc.Connection) -> None:
         """Execute the batch delete statement, comprised of one or many "delete from", to remove data from tables."""
-        conn.autocommit = False
         with conn.cursor() as cursor:
             cursor.execute(self._delete_sql)
             if self._reseed_sql != "" and self._reseed_sql != None:
                 cursor.execute(self._reseed_sql)
-            cursor.commit()
-        conn.autocommit = True
-
 
 
     def _build_delete_tables(self, conn: pyodbc.Connection) -> None:
@@ -100,7 +87,8 @@ class Checkpoint:
         relationships: List[Relationship] = []
         cmd_txt = self.db_adapter.get_relationship_command_text(self)
         with conn.cursor() as cursor:
-            res = cursor.execute(cmd_txt).fetchall()
+            cursor.execute(cmd_txt)
+            res = cursor.fetchall()
             for i in res:
                 relationships.append(Relationship(
                     Table(i[0], i[1]),
@@ -115,11 +103,11 @@ class Checkpoint:
         tables: List[Table] = []
         cmd_txt = self.db_adapter.get_tables_command_text(self)
         with conn.cursor() as cursor:
-            res = cursor.execute(cmd_txt).fetchall()
+            cursor.execute(cmd_txt)
+            res = cursor.fetchall()
             for i in res:
                 tables.append(Table(i[0], i[1]))
         return tables
-
 
 
     def _get_all_temporal_tables(self, conn: pyodbc.Connection) -> List[TemporalTable]:
@@ -127,11 +115,11 @@ class Checkpoint:
         temporal_tables: List[TemporalTable] = []
         cmd_txt = self.db_adapter.get_temporal_table_command_text(self)
         with conn.cursor() as cursor:
-            res = cursor.execute(cmd_txt).fetchall()
+            cursor.execute(cmd_txt)
+            res = cursor.fetchall()
             for i in res:
                 temporal_tables.append(TemporalTable(i[0], i[1], i[2], i[3]))
         return temporal_tables
-
 
 
     def _does_db_support_temporal_tables(self, conn: pyodbc.Connection) -> bool:
@@ -141,7 +129,6 @@ class Checkpoint:
         if self._get_sql_server_edition(conn) != 6 and self._get_sql_server_compatability_level(conn) >= 130:
             return True
         return False
-        
 
  
     def _get_sql_server_edition(self, conn: pyodbc.Connection) -> int:
@@ -154,7 +141,8 @@ class Checkpoint:
         end as [edition]
         """
         with conn.cursor() as cursor:
-            res = cursor.execute(query).fetchone().edition
+           cursor.execute(query)
+           return cursor.fetchone().edition
         return res
 
 
@@ -166,5 +154,5 @@ class Checkpoint:
         WHERE  [name] = '{self._database_name}';
         """
         with conn.cursor() as cursor:
-            res = cursor.execute(query).fetchone().compatability_level
-        return res
+            cursor.execute(query)
+            return cursor.fetchone().compatability_level
