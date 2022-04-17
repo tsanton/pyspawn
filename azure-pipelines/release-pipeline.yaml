@@ -16,30 +16,30 @@ pool:
 
 stages:
   - stage: release
-      displayName: Build and Release
-      jobs:
-        - job:
-          steps:
-            - download: none
-            - checkout: self
+    displayName: Build and Release
+    jobs:
+      - job:
+        steps:
+          - download: none
+          - checkout: self
 
-            - script: pip install twine
-              displayName: Install twine
+          - script: pip install twine
+            displayName: Install twine
 
-            - script: |
-                python setup.py bdist_wheel
-              displayName: Build wheel
-              condition: succeeded()
+          - script: |
+              python setup.py bdist_wheel
+            displayName: Build wheel
+            condition: succeeded()
 
-            - task: CopyFiles@2
-              displayName: Copy artifact
-              condition: succeeded()
-              inputs:
-                sourceFolder: $(System.DefaultWorkingDirectory)/dist/
-                targetFolder: $(Build.ArtifactStagingDirectory)/dist/
+          - task: CopyFiles@2
+            displayName: Copy artifact
+            condition: succeeded()
+            inputs:
+              sourceFolder: $(System.DefaultWorkingDirectory)/dist/
+              targetFolder: $(Build.ArtifactStagingDirectory)/dist/
 
-            - script: python -m twine upload -u $(PYPI_USER) -p $(PYPI_PASSWORD) --repository-url https://upload.pypi.org/legacy/ $(Build.ArtifactStagingDirectory)/dist/*.whl
-              displayName: Upload to PyPi
+          - script: python -m twine upload -u $(PYPI_USER) -p $(PYPI_PASSWORD) --repository-url https://upload.pypi.org/legacy/ $(Build.ArtifactStagingDirectory)/dist/*.whl
+            displayName: Upload to PyPi
 
-            - upload: $(Build.ArtifactStagingDirectory)/dist/
-                artifact: drop
+          - upload: $(Build.ArtifactStagingDirectory)/dist/
+              artifact: drop
