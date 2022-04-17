@@ -12,7 +12,7 @@ steps:
       action: Run a Docker Compose command
       dockerComposeFile: docker-compose.yaml
       additionalDockerComposeFiles: docker-compose.testing.azure.yaml
-      serviceName: ${{ parameters.composeServiceName }}
+      serviceName: pyspawn
       dockerComposeCommand: run --rm pyspawn
       dockerComposeFileArgs: ${{ parameters.composeArgs }}
       qualifyImageNames: true
