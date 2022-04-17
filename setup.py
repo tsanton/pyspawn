@@ -28,6 +28,6 @@ setuptools.setup(
         "pyodbc>=4.0.32",
         "psycopg2>=2.8.5"
     ],
-    packages=setuptools.find_packages(where="pyspawn", exclude=["tests"]),
+    packages=setuptools.find_packages(exclude=["*tests*"]),
     python_requires=">=3.6",
 )
