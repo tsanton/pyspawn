@@ -1,0 +1,43 @@
+### Trigger on PR to master ###
+pr:
+  - master
+
+pool:
+  vmImage: ubuntu-latest
+
+stages:
+  - stage: test
+    displayName: Run tests
+    jobs:
+      - job:
+        strategy:
+          matrix:
+            python36:
+              PYTHON_MAJOR_VERSION: "3.6"
+              PYTHON_IMAGE_NAME: "3.6.3-jessie"
+            python37:
+              PYTHON_MAJOR_VERSION: "3.7"
+              PYTHON_IMAGE_NAME: "3.7.13-buster"
+            python38:
+              PYTHON_MAJOR_VERSION: "3.8"
+              PYTHON_IMAGE_NAME: "3.8.13-buster"
+            python39:
+              PYTHON_MAJOR_VERSION: "3.9"
+              PYTHON_IMAGE_NAME: "3.9.12-buster"
+            python310:
+              PYTHON_MAJOR_VERSION: "3.10"
+              PYTHON_IMAGE_NAME: "3.10.4-buster"
+        steps:
+          - template: /azure-pipelines/templates/testing-template.yaml
+            parameters:
+              composeArgs: |
+                PYTHONHASHSEED=0
+                PGSQL_HOST=pgsql
+                PGSQL_DB=pg_test_db
+                PGSQL_UID=test_admin
+                PGSQL_PWD=V3ryS3kr!t
+                MSSQL_HOST=mssql
+                MSSQL_DB=MssqlTestDb
+                MSSQL_UID=sa
+                MSSQL_PWD=Sup3rS3kr!t
+                PYTHON_IMAGE_NAME=$(PYTHON_IMAGE_NAME)
