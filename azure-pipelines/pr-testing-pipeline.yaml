@@ -1,4 +1,8 @@
 ### Trigger on PR to master ###
+trigger:
+  branches:
+    include:
+    - master
 pr:
   - master
 
