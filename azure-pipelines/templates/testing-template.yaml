@@ -13,7 +13,7 @@ steps:
       dockerComposeFile: docker-compose.yaml
       additionalDockerComposeFiles: docker-compose.testing.azure.yaml
       serviceName: pyspawn
-      dockerComposeCommand: run --rm pyspawn
+      dockerComposeCommand: run --rm pyspawn mssql pgsql
       dockerComposeFileArgs: ${{ parameters.composeArgs }}
       qualifyImageNames: true
 
