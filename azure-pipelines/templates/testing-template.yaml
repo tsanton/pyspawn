@@ -12,8 +12,8 @@ steps:
       containerregistrytype: Container Registry
       dockerComposeFile: docker-compose.yaml
       additionalDockerComposeFiles: docker-compose.testing.azure.yaml
-      qualifyImageNames: true
       dockerComposeFileArgs: ${{ parameters.composeArgs }}
+      qualifyImageNames: true
 
   - task: DockerCompose@0
     displayName: Run tests
@@ -23,7 +23,7 @@ steps:
       dockerComposeFile: docker-compose.yaml
       additionalDockerComposeFiles: docker-compose.testing.azure.yaml
       serviceName: pyspawn
-      dockerComposeCommand: run --rm pyspawn mssql pgsql
+      dockerComposeCommand: run --rm pyspawn
       dockerComposeFileArgs: ${{ parameters.composeArgs }}
       qualifyImageNames: true
 
@@ -40,3 +40,13 @@ steps:
       codeCoverageTool: "cobertura"
       summaryFileLocation: "$(System.DefaultWorkingDirectory)/coverage-reports/coverage.xml"
       reportDirectory: "$(System.DefaultWorkingDirectory)/coverage-reports/"
+
+  - task: DockerCompose@0
+    displayName: Compose down
+    inputs:
+      action: Run a Docker Compose command
+      containerregistrytype: Container Registry
+      dockerComposeFile: docker-compose.yaml
+      additionalDockerComposeFiles: docker-compose.testing.azure.yaml
+      serviceName: pyspawn
+      dockerComposeCommand: down
