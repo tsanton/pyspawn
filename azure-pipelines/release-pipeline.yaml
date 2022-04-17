@@ -2,58 +2,44 @@ trigger:
 - master
 
 variables:
-  major: 1
-  minor: 1
-  patch: $[counter(variables['minor'], 1)] #this will reset when we bump minor
-  PYSPAWN_VERSION_NUM: $(major).$(minor).$(patch)
-  SA_PASSWORD: RandomSecretPassword123!
+  - name: major
+    value: 1
+  - name: minor
+    value: 2
+  - name: patch
+    value: $[counter(variables['minor'], 1)]
+  - name: PYSPAWN_VERSION_NUM
+    value: $(major).$(minor).$(patch)
 
 pool:
   vmImage: ubuntu-latest
 
-steps:
-- script: |
-    docker-compose -f docker-compose.yaml -f docker-compose.test.yaml build
-    docker-compose -f docker-compose.yaml -f docker-compose.test.yaml -f docker-compose.test.azure.yaml run -e PYTHONHASHSEED="0" -e ACCEPT_EULA="Y" -e SA_PASSWORD=${SA_PASSWORD} testsuite 
-    docker-compose down
-  displayName: Run unit tests
-  continueOnError: false
+stages:
+  - stage: release
+      displayName: Build and Release
+      jobs:
+        - job:
+          steps:
+            - download: none
+            - checkout: self
 
-- task: PublishTestResults@2
-  displayName: 'Publish test results'
-  condition: succeededOrFailed()
-  inputs:
-    testResultsFiles: '**/xunit-result-all.xml'
+            - script: pip install twine
+              displayName: Install twine
 
-- task: PublishCodeCoverageResults@1
-  displayName: 'Publish coverage reports'
-  condition: succeededOrFailed()
-  inputs:
-    codeCoverageTool: 'cobertura'
-    summaryFileLocation: '$(System.DefaultWorkingDirectory)/coverage-reports/coverage.xml'
-    reportDirectory: '$(System.DefaultWorkingDirectory)/coverage-reports/'
+            - script: |
+                python setup.py bdist_wheel
+              displayName: Build wheel
+              condition: succeeded()
 
-- script: |
-    pip install wheel
-  displayName: Install build dependencies
-  condition: succeeded()
+            - task: CopyFiles@2
+              displayName: Copy artifact
+              condition: succeeded()
+              inputs:
+                sourceFolder: $(System.DefaultWorkingDirectory)/dist/
+                targetFolder: $(Build.ArtifactStagingDirectory)/dist/
 
-- script: |
-    python setup.py bdist_wheel
-  displayName: Build wheel
-  condition: succeeded()
+            - script: python -m twine upload -u $(PYPI_USER) -p $(PYPI_PASSWORD) --repository-url https://upload.pypi.org/legacy/ $(Build.ArtifactStagingDirectory)/dist/*.whl
+              displayName: Upload to PyPi
 
-- task: CopyFiles@2
-  displayName: Copy artifact
-  condition: succeeded()
-  inputs:
-    sourceFolder: $(System.DefaultWorkingDirectory)/dist/
-    targetFolder: $(Build.ArtifactStagingDirectory)
-
-- task: PublishBuildArtifacts@1
-  displayName: Publish artifact
-  condition: succeeded()
-  inputs:
-    PathtoPublish: '$(Build.ArtifactStagingDirectory)'
-    ArtifactName: 'dist'
-    publishLocation: 'Container'
+            - upload: $(Build.ArtifactStagingDirectory)/dist/
+                artifact: drop

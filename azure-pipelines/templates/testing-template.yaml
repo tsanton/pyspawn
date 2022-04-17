@@ -50,3 +50,4 @@ steps:
       additionalDockerComposeFiles: docker-compose.testing.azure.yaml
       serviceName: pyspawn
       dockerComposeCommand: down
+      dockerComposeFileArgs: ${{ parameters.composeArgs }}
