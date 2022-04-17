@@ -6,10 +6,20 @@ parameters:
 
 steps:
   - task: DockerCompose@0
+    displayName: Build services
+    inputs:
+      action: Build services
+      containerregistrytype: Container Registry
+      dockerComposeFile: docker-compose.yaml
+      additionalDockerComposeFiles: docker-compose.testing.azure.yaml
+      qualifyImageNames: true
+      dockerComposeFileArgs: ${{ parameters.composeArgs }}
+
+  - task: DockerCompose@0
     displayName: Run tests
     inputs:
-      containerregistrytype: Container Registry
       action: Run a Docker Compose command
+      containerregistrytype: Container Registry
       dockerComposeFile: docker-compose.yaml
       additionalDockerComposeFiles: docker-compose.testing.azure.yaml
       serviceName: pyspawn
