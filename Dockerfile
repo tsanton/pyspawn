@@ -18,9 +18,9 @@ RUN apt-get update -qq && apt-get install -y \
 
 WORKDIR /app
 
-COPY setup.py requirements.txt README.md ./
+COPY setup.py dev_requirements.txt README.md ./
 
-RUN pip install -r requirements.txt
+RUN pip install -r dev_requirements.txt
 
 RUN pip install -e ./
 
