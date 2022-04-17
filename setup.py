@@ -25,8 +25,7 @@ setuptools.setup(
         "Operating System :: OS Independent",
     ],
     install_requires=[
-        "pyodbc>=4.0.32",
-        "psycopg2>=2.8.5"
+        "dataclasses"
     ],
     packages=setuptools.find_packages(exclude=["*tests*"]),
     python_requires=">=3.6",
