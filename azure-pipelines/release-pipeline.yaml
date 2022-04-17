@@ -7,6 +7,7 @@ variables:
   - name: minor
     value: 2
   - name: patch
+    value: 0
     value: $[counter(variables['minor'], 1)]
   - name: PYSPAWN_VERSION_NUM
     value: $(major).$(minor).$(patch)
@@ -42,4 +43,4 @@ stages:
             displayName: Upload to PyPi
 
           - upload: $(Build.ArtifactStagingDirectory)/dist/
-              artifact: drop
+            artifact: drop
