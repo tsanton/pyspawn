@@ -1,15 +1,48 @@
-version: "3.4"
+version: "3.9"
 services:
   mssql:
     environment:
-        - SA_PASSWORD
-        - ACCEPT_EULA
+        - SA_PASSWORD=${MSSQL_PWD}
+        - ACCEPT_EULA=Y
     build:
       context: .
       dockerfile: mssql.Dockerfile
       args:
-        SA_PASSWORD: ${SA_PASSWORD}
-        ACCEPT_EULA: ${ACCEPT_EULA}
+        SA_PASSWORD: ${MSSQL_PWD}
+        ACCEPT_EULA: Y
     user: root
     ports:
       - "1433:1433"
+
+  pgsql:
+    environment:
+      - POSTGRES_DB=${PGSQL_DB}
+      - POSTGRES_USER=${PGSQL_UID}
+      - POSTGRES_PASSWORD=${PGSQL_PWD}
+    build:
+      context: .
+      dockerfile: pg.Dockerfile
+    ports:
+      - "5432:5432"
+
+  pyspawn:
+    environment:
+      - PYTHONHASHSEED=0
+      - PGSQL_HOST=pgsql
+      - PGSQL_DB=${PGSQL_DB}
+      - PGSQL_UID=${PGSQL_UID}
+      - PGSQL_PWD=${PGSQL_PWD}
+      - MSSQL_HOST=mssql
+      - MSSQL_DB=${MSSQL_DB}
+      - MSSQL_UID=${MSSQL_UID}
+      - MSSQL_PWD=${MSSQL_PWD}
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        - PYTHON_IMAGE_NAME=${PYTHON_IMAGE_NAME}
+    depends_on:
+      mssql:
+        condition: service_started
+      pgsql:
+        condition: service_healthy

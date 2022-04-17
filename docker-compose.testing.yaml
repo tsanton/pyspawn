@@ -1,0 +1,4 @@
+version: "3.9"
+services:
+  pyspawn:
+    command: py.test -v -s #-k test_mssql_delete_temporal_tables_anonymous_history_table
